@@ -15,7 +15,24 @@ class FlexDriveApp extends StatelessWidget {
       title: 'FlexDrive',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1C6B63)),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF1C6B63),
+          surface: const Color(0xFFF5F6F1),
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF1F3EC),
+        appBarTheme: const AppBarTheme(
+          centerTitle: false,
+          backgroundColor: Color(0xFFF1F3EC),
+          foregroundColor: Color(0xFF12201D),
+          elevation: 0,
+        ),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+        ),
       ),
       initialRoute: AppRoutes.home,
       routes: {
