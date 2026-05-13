@@ -152,7 +152,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: CarPreviewCard(
               car: car,
               onTap: () {
-                Navigator.pushNamed(context, AppRoutes.details);
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.details,
+                  arguments: car,
+                );
               },
             ),
           ),

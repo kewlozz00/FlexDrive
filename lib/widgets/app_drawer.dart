@@ -30,12 +30,6 @@ class AppDrawer extends StatelessWidget {
               currentRoute: currentRoute,
             ),
             _DrawerItem(
-              title: 'Details',
-              icon: Icons.info_outline_rounded,
-              routeName: AppRoutes.details,
-              currentRoute: currentRoute,
-            ),
-            _DrawerItem(
               title: 'Settings',
               icon: Icons.tune_rounded,
               routeName: AppRoutes.settings,

@@ -1,47 +1,43 @@
-import 'package:flex_drive/app.dart';
 import 'package:flex_drive/models/car.dart';
-import 'package:flex_drive/services/car_repository.dart';
+import 'package:flex_drive/screens/car_details_screen.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class FakeCarRepository extends CarRepository {
-  const FakeCarRepository();
-
-  @override
-  Future<List<Car>> fetchCars() async {
-    return const [
-      Car(
-        id: 'tesla-model-3',
-        brand: 'Tesla',
-        model: 'Model 3',
-        category: 'Electric sedan',
-        location: 'Campus parking',
-        pricePerMinute: 4,
-        distanceKm: 0.4,
-        batteryPercent: 84,
-        rangeKm: 412,
-        seats: 5,
-        transmission: 'Automatic',
-        isAvailable: true,
-        imageUrl: 'https://example.com/tesla.jpg',
-        description: 'Test description',
-      ),
-    ];
-  }
-}
+const testCar = Car(
+  id: 'tesla-model-3',
+  brand: 'Tesla',
+  model: 'Model 3',
+  category: 'Electric sedan',
+  location: 'Campus parking',
+  pricePerMinute: 4,
+  distanceKm: 0.4,
+  batteryPercent: 84,
+  rangeKm: 412,
+  seats: 5,
+  transmission: 'Automatic',
+  isAvailable: true,
+  imageUrl: 'https://example.com/tesla.jpg',
+  description: 'Test description',
+);
 
 void main() {
-  testWidgets('app shows cars loaded from repository', (tester) async {
+  testWidgets('car details screen renders car information', (tester) async {
     await tester.pumpWidget(
-      const FlexDriveApp(
-        carRepository: FakeCarRepository(),
+      const MaterialApp(
+        home: CarDetailsScreen(car: testCar),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('FlexDrive'), findsOneWidget);
-    expect(find.text('Carsharing for everyday city trips'), findsOneWidget);
-    expect(find.text('Nearby cars'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('About this car'),
+      300,
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text('Tesla Model 3'), findsOneWidget);
-    expect(find.text('Loaded from local JSON assets.'), findsOneWidget);
+    expect(find.text('About this car'), findsOneWidget);
+    expect(find.text('84%'), findsOneWidget);
+    expect(find.text('Reserve this car'), findsOneWidget);
   });
 }
