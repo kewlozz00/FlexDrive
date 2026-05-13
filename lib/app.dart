@@ -4,56 +4,90 @@ import 'package:flex_drive/screens/car_details_screen.dart';
 import 'package:flex_drive/screens/home_screen.dart';
 import 'package:flex_drive/screens/settings_screen.dart';
 import 'package:flex_drive/services/car_repository.dart';
+import 'package:flex_drive/services/settings_repository.dart';
+import 'package:flex_drive/theme/app_theme.dart';
 import 'package:flex_drive/utils/app_routes.dart';
 import 'package:flutter/material.dart';
 
-class FlexDriveApp extends StatelessWidget {
+class FlexDriveApp extends StatefulWidget {
   const FlexDriveApp({
     super.key,
     CarRepository? carRepository,
-  }) : carRepository = carRepository ?? const CarRepository();
+    this.settingsRepository,
+    ThemeMode? initialThemeMode,
+  })  : carRepository = carRepository ?? const CarRepository(),
+        initialThemeMode = initialThemeMode ?? ThemeMode.light;
 
   final CarRepository carRepository;
+  final SettingsRepository? settingsRepository;
+  final ThemeMode initialThemeMode;
+
+  @override
+  State<FlexDriveApp> createState() => _FlexDriveAppState();
+}
+
+class _FlexDriveAppState extends State<FlexDriveApp> {
+  late ThemeMode _themeMode;
+  bool _isSavingTheme = false;
+  String? _themeSaveError;
+
+  @override
+  void initState() {
+    super.initState();
+    _themeMode = widget.initialThemeMode;
+  }
+
+  Future<void> _updateThemeMode(ThemeMode mode) async {
+    if (_themeMode == mode || _isSavingTheme) {
+      return;
+    }
+
+    final previousMode = _themeMode;
+
+    setState(() {
+      _themeMode = mode;
+      _isSavingTheme = true;
+      _themeSaveError = null;
+    });
+
+    try {
+      await widget.settingsRepository?.saveThemeMode(mode);
+    } catch (_) {
+      setState(() {
+        _themeMode = previousMode;
+        _themeSaveError = 'Could not save the selected theme.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingTheme = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'FlexDrive',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1C6B63),
-          surface: const Color(0xFFF5F6F1),
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF1F3EC),
-        appBarTheme: const AppBarTheme(
-          centerTitle: false,
-          backgroundColor: Color(0xFFF1F3EC),
-          foregroundColor: Color(0xFF12201D),
-          elevation: 0,
-        ),
-        cardTheme: CardThemeData(
-          elevation: 0,
-          color: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
-        ),
-      ),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: _themeMode,
       initialRoute: AppRoutes.home,
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case AppRoutes.home:
             return MaterialPageRoute<void>(
-              builder: (_) => HomeScreen(carRepository: carRepository),
+              builder: (_) => HomeScreen(carRepository: widget.carRepository),
               settings: settings,
             );
           case AppRoutes.details:
             final car = settings.arguments;
             if (car is! Car) {
               return MaterialPageRoute<void>(
-                builder: (_) => HomeScreen(carRepository: carRepository),
+                builder: (_) =>
+                    HomeScreen(carRepository: widget.carRepository),
                 settings: settings,
               );
             }
@@ -63,7 +97,12 @@ class FlexDriveApp extends StatelessWidget {
             );
           case AppRoutes.settings:
             return MaterialPageRoute<void>(
-              builder: (_) => const SettingsScreen(),
+              builder: (_) => SettingsScreen(
+                currentThemeMode: _themeMode,
+                isSavingTheme: _isSavingTheme,
+                saveError: _themeSaveError,
+                onThemeModeChanged: _updateThemeMode,
+              ),
               settings: settings,
             );
           case AppRoutes.about:
@@ -73,7 +112,7 @@ class FlexDriveApp extends StatelessWidget {
             );
           default:
             return MaterialPageRoute<void>(
-              builder: (_) => HomeScreen(carRepository: carRepository),
+              builder: (_) => HomeScreen(carRepository: widget.carRepository),
               settings: settings,
             );
         }
