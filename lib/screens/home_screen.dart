@@ -1,6 +1,7 @@
 import 'package:flex_drive/models/car.dart';
 import 'package:flex_drive/services/car_repository.dart';
 import 'package:flex_drive/utils/app_routes.dart';
+import 'package:flex_drive/utils/validators.dart';
 import 'package:flex_drive/widgets/app_drawer.dart';
 import 'package:flex_drive/widgets/car_preview_card.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +19,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final _searchFormKey = GlobalKey<FormState>();
+  final _searchController = TextEditingController();
   late Future<List<Car>> _carsFuture;
+  String _activeQuery = '';
 
   @override
   void initState() {
@@ -26,10 +30,36 @@ class _HomeScreenState extends State<HomeScreen> {
     _carsFuture = widget.carRepository.fetchCars();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _reloadCars() {
     setState(() {
       _carsFuture = widget.carRepository.fetchCars();
     });
+  }
+
+  void _applySearch() {
+    final isValid = _searchFormKey.currentState?.validate() ?? false;
+
+    if (!isValid) {
+      return;
+    }
+
+    setState(() {
+      _activeQuery = _searchController.text.trim();
+    });
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _activeQuery = '';
+    });
+    _searchFormKey.currentState?.validate();
   }
 
   @override
@@ -43,13 +73,21 @@ class _HomeScreenState extends State<HomeScreen> {
         future: _carsFuture,
         builder: (context, snapshot) {
           final cars = snapshot.data ?? const <Car>[];
+          final filteredCars = _filterCars(cars, _activeQuery);
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
             children: [
-              _HeroSection(label: _heroLabel(snapshot, cars)),
+              _HeroSection(label: _heroLabel(snapshot, filteredCars)),
               const SizedBox(height: 20),
               const _ZoneCard(),
+              const SizedBox(height: 20),
+              _SearchCard(
+                formKey: _searchFormKey,
+                controller: _searchController,
+                onSearch: _applySearch,
+                onClear: _clearSearch,
+              ),
               const SizedBox(height: 24),
               Text(
                 'Nearby cars',
@@ -59,13 +97,15 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Loaded from local JSON assets.',
+                _activeQuery.isEmpty
+                    ? 'Loaded from local JSON assets.'
+                    : 'Results for "$_activeQuery".',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: const Color(0xFF5A6965),
                     ),
               ),
               const SizedBox(height: 16),
-              ..._buildCarsSection(context, snapshot, cars),
+              ..._buildCarsSection(context, snapshot, filteredCars),
             ],
           );
         },
@@ -84,6 +124,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final availableCars = cars.where((car) => car.isAvailable).length;
     return '$availableCars cars available now';
+  }
+
+  List<Car> _filterCars(List<Car> cars, String query) {
+    if (query.isEmpty) {
+      return cars;
+    }
+
+    final normalizedQuery = query.toLowerCase();
+
+    return cars.where((car) {
+      final haystack = [
+        car.brand,
+        car.model,
+        car.category,
+        car.location,
+      ].join(' ').toLowerCase();
+
+      return haystack.contains(normalizedQuery);
+    }).toList();
   }
 
   List<Widget> _buildCarsSection(
@@ -132,13 +191,29 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (cars.isEmpty) {
+      final message = _activeQuery.isEmpty
+          ? 'No cars are available in the current list.'
+          : 'No cars match "$_activeQuery".';
+
       return [
         Card(
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: Text(
-              'No cars are available in the current list.',
-              style: Theme.of(context).textTheme.titleMedium,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                if (_activeQuery.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  OutlinedButton(
+                    onPressed: _clearSearch,
+                    child: const Text('Clear search'),
+                  ),
+                ],
+              ],
             ),
           ),
         ),
@@ -273,6 +348,86 @@ class _ZoneCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchCard extends StatelessWidget {
+  const _SearchCard({
+    required this.formKey,
+    required this.controller,
+    required this.onSearch,
+    required this.onClear,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final TextEditingController controller;
+  final VoidCallback onSearch;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Search cars',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Search by brand, model, category or location.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF5A6965),
+                    ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: controller,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                textInputAction: TextInputAction.search,
+                validator: validateSearchQuery,
+                onFieldSubmitted: (_) => onSearch(),
+                decoration: InputDecoration(
+                  hintText: 'Try Tesla, Mini or campus',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: controller.text.isEmpty
+                      ? null
+                      : IconButton(
+                          onPressed: onClear,
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: onSearch,
+                      child: const Text('Search'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onClear,
+                      child: const Text('Clear'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
