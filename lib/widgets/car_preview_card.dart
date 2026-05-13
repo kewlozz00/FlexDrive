@@ -1,29 +1,23 @@
+import 'package:flex_drive/models/car.dart';
 import 'package:flutter/material.dart';
 
 class CarPreviewCard extends StatelessWidget {
   const CarPreviewCard({
     super.key,
-    required this.title,
-    required this.subtitle,
-    required this.location,
-    required this.price,
-    required this.distance,
-    required this.accent,
-    required this.icon,
+    required this.car,
     required this.onTap,
   });
 
-  final String title;
-  final String subtitle;
-  final String location;
-  final String price;
-  final String distance;
-  final Color accent;
-  final IconData icon;
+  final Car car;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final accentColor = _accentColor;
+    final statusColor = car.isAvailable
+        ? const Color(0xFF1C6B63)
+        : const Color(0xFF8A5E2B);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -42,13 +36,13 @@ class CarPreviewCard extends StatelessWidget {
                   width: 78,
                   height: 78,
                   decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.12),
+                    color: accentColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Icon(
-                    icon,
+                    _icon,
                     size: 34,
-                    color: accent,
+                    color: accentColor,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -57,14 +51,14 @@ class CarPreviewCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        title,
+                        car.fullName,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        subtitle,
+                        car.category,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: const Color(0xFF60716C),
                             ),
@@ -76,11 +70,11 @@ class CarPreviewCard extends StatelessWidget {
                         children: [
                           _MetaChip(
                             icon: Icons.place_outlined,
-                            label: location,
+                            label: car.location,
                           ),
                           _MetaChip(
                             icon: Icons.schedule_rounded,
-                            label: distance,
+                            label: '${car.distanceKm.toStringAsFixed(1)} km away',
                           ),
                         ],
                       ),
@@ -97,20 +91,20 @@ class CarPreviewCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE8F3EE),
+                        color: statusColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      child: const Text(
-                        'Available',
+                      child: Text(
+                        car.isAvailable ? 'Available' : 'Busy',
                         style: TextStyle(
-                          color: Color(0xFF1C6B63),
+                          color: statusColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                     const SizedBox(height: 18),
                     Text(
-                      price,
+                      '${car.pricePerMinute} EUR/min',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
@@ -125,6 +119,43 @@ class CarPreviewCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color get _accentColor {
+    switch (car.brand) {
+      case 'Tesla':
+        return const Color(0xFF1C6B63);
+      case 'Mini':
+        return const Color(0xFFB98145);
+      case 'BMW':
+        return const Color(0xFF587C9B);
+      case 'Volkswagen':
+        return const Color(0xFF5A7D58);
+      case 'Hyundai':
+        return const Color(0xFF8A5E2B);
+      default:
+        return const Color(0xFF6A7280);
+    }
+  }
+
+  IconData get _icon {
+    if (car.category.toLowerCase().contains('sedan')) {
+      return Icons.bolt_rounded;
+    }
+
+    if (car.category.toLowerCase().contains('crossover')) {
+      return Icons.directions_car_filled_rounded;
+    }
+
+    if (car.category.toLowerCase().contains('hatchback')) {
+      return Icons.route_rounded;
+    }
+
+    if (car.category.toLowerCase().contains('micro')) {
+      return Icons.electric_car_rounded;
+    }
+
+    return Icons.directions_car_rounded;
   }
 }
 

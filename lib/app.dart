@@ -2,11 +2,17 @@ import 'package:flex_drive/screens/about_screen.dart';
 import 'package:flex_drive/screens/car_details_screen.dart';
 import 'package:flex_drive/screens/home_screen.dart';
 import 'package:flex_drive/screens/settings_screen.dart';
+import 'package:flex_drive/services/car_repository.dart';
 import 'package:flex_drive/utils/app_routes.dart';
 import 'package:flutter/material.dart';
 
 class FlexDriveApp extends StatelessWidget {
-  const FlexDriveApp({super.key});
+  const FlexDriveApp({
+    super.key,
+    CarRepository? carRepository,
+  }) : carRepository = carRepository ?? const CarRepository();
+
+  final CarRepository carRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +42,7 @@ class FlexDriveApp extends StatelessWidget {
       ),
       initialRoute: AppRoutes.home,
       routes: {
-        AppRoutes.home: (_) => const HomeScreen(),
+        AppRoutes.home: (_) => HomeScreen(carRepository: carRepository),
         AppRoutes.details: (_) => const CarDetailsScreen(),
         AppRoutes.settings: (_) => const SettingsScreen(),
         AppRoutes.about: (_) => const AboutScreen(),
