@@ -1,45 +1,41 @@
-import 'package:flex_drive/models/car.dart';
-import 'package:flex_drive/services/car_repository.dart';
+import 'package:flex_drive/providers/car_list_notifier.dart';
+import 'package:flex_drive/providers/car_list_state.dart';
 import 'package:flex_drive/utils/app_routes.dart';
 import 'package:flex_drive/utils/validators.dart';
 import 'package:flex_drive/widgets/app_drawer.dart';
 import 'package:flex_drive/widgets/car_preview_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({
-    super.key,
-    CarRepository? carRepository,
-  }) : carRepository = carRepository ?? const CarRepository();
-
-  final CarRepository carRepository;
+class HomeScreen extends ConsumerStatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _searchFormKey = GlobalKey<FormState>();
   final _searchController = TextEditingController();
-  late Future<List<Car>> _carsFuture;
-  String _activeQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _carsFuture = widget.carRepository.fetchCars();
+    _searchController.text = ref.read(carsProvider).query;
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
 
-  void _reloadCars() {
-    setState(() {
-      _carsFuture = widget.carRepository.fetchCars();
-    });
+  void _onSearchChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _applySearch() {
@@ -49,108 +45,76 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    setState(() {
-      _activeQuery = _searchController.text.trim();
-    });
+    ref.read(carsProvider.notifier).applySearch(_searchController.text);
   }
 
   void _clearSearch() {
     _searchController.clear();
-    setState(() {
-      _activeQuery = '';
-    });
+    ref.read(carsProvider.notifier).clearSearch();
     _searchFormKey.currentState?.validate();
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(carsProvider);
+
     return Scaffold(
       drawer: const AppDrawer(currentRoute: AppRoutes.home),
       appBar: AppBar(
         title: const Text('FlexDrive'),
       ),
-      body: FutureBuilder<List<Car>>(
-        future: _carsFuture,
-        builder: (context, snapshot) {
-          final cars = snapshot.data ?? const <Car>[];
-          final filteredCars = _filterCars(cars, _activeQuery);
-
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            children: [
-              _HeroSection(label: _heroLabel(snapshot, filteredCars)),
-              const SizedBox(height: 20),
-              const _ZoneCard(),
-              const SizedBox(height: 20),
-              _SearchCard(
-                formKey: _searchFormKey,
-                controller: _searchController,
-                onSearch: _applySearch,
-                onClear: _clearSearch,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Nearby cars',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _activeQuery.isEmpty
-                    ? 'Loaded from local JSON assets.'
-                    : 'Results for "$_activeQuery".',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF5A6965),
-                    ),
-              ),
-              const SizedBox(height: 16),
-              ..._buildCarsSection(context, snapshot, filteredCars),
-            ],
-          );
-        },
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        children: [
+          _HeroSection(label: _heroLabel(state)),
+          const SizedBox(height: 20),
+          const _ZoneCard(),
+          const SizedBox(height: 20),
+          _SearchCard(
+            formKey: _searchFormKey,
+            controller: _searchController,
+            onSearch: _applySearch,
+            onClear: _clearSearch,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Nearby cars',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            state.query.isEmpty
+                ? 'Managed with Riverpod state.'
+                : 'Results for "${state.query}".',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF5A6965),
+                ),
+          ),
+          const SizedBox(height: 16),
+          ..._buildCarsSection(context, state),
+        ],
       ),
     );
   }
 
-  String _heroLabel(AsyncSnapshot<List<Car>> snapshot, List<Car> cars) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
+  String _heroLabel(CarListState state) {
+    if (state.isLoading) {
       return 'Loading cars...';
     }
 
-    if (snapshot.hasError) {
+    if (state.errorMessage != null) {
       return 'Cars unavailable';
     }
 
-    final availableCars = cars.where((car) => car.isAvailable).length;
+    final availableCars =
+        state.visibleCars.where((car) => car.isAvailable).length;
     return '$availableCars cars available now';
   }
 
-  List<Car> _filterCars(List<Car> cars, String query) {
-    if (query.isEmpty) {
-      return cars;
-    }
-
-    final normalizedQuery = query.toLowerCase();
-
-    return cars.where((car) {
-      final haystack = [
-        car.brand,
-        car.model,
-        car.category,
-        car.location,
-      ].join(' ').toLowerCase();
-
-      return haystack.contains(normalizedQuery);
-    }).toList();
-  }
-
-  List<Widget> _buildCarsSection(
-    BuildContext context,
-    AsyncSnapshot<List<Car>> snapshot,
-    List<Car> cars,
-  ) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
+  List<Widget> _buildCarsSection(BuildContext context, CarListState state) {
+    if (state.isLoading) {
       return const [
         Padding(
           padding: EdgeInsets.symmetric(vertical: 28),
@@ -161,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ];
     }
 
-    if (snapshot.hasError) {
+    if (state.errorMessage != null) {
       return [
         Card(
           child: Padding(
@@ -170,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Could not load cars right now.',
+                  state.errorMessage!,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
@@ -180,7 +144,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
                 FilledButton(
-                  onPressed: _reloadCars,
+                  onPressed: () {
+                    ref.read(carsProvider.notifier).reloadCars();
+                  },
                   child: const Text('Retry'),
                 ),
               ],
@@ -190,10 +156,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ];
     }
 
-    if (cars.isEmpty) {
-      final message = _activeQuery.isEmpty
+    if (state.visibleCars.isEmpty) {
+      final message = state.query.isEmpty
           ? 'No cars are available in the current list.'
-          : 'No cars match "$_activeQuery".';
+          : 'No cars match "${state.query}".';
 
       return [
         Card(
@@ -206,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   message,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                if (_activeQuery.isNotEmpty) ...[
+                if (state.query.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   OutlinedButton(
                     onPressed: _clearSearch,
@@ -220,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ];
     }
 
-    return cars
+    return state.visibleCars
         .map(
           (car) => Padding(
             padding: const EdgeInsets.only(bottom: 14),

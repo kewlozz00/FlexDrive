@@ -1,6 +1,7 @@
 import 'package:flex_drive/app.dart';
 import 'package:flex_drive/services/settings_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
@@ -10,9 +11,11 @@ Future<void> main() async {
   final settingsRepository = SettingsRepository(preferences);
 
   runApp(
-    FlexDriveApp(
-      settingsRepository: settingsRepository,
-      initialThemeMode: settingsRepository.loadThemeMode(),
+    ProviderScope(
+      child: FlexDriveApp(
+        settingsRepository: settingsRepository,
+        initialThemeMode: settingsRepository.loadThemeMode(),
+      ),
     ),
   );
 }

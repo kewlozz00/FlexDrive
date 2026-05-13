@@ -3,7 +3,6 @@ import 'package:flex_drive/screens/about_screen.dart';
 import 'package:flex_drive/screens/car_details_screen.dart';
 import 'package:flex_drive/screens/home_screen.dart';
 import 'package:flex_drive/screens/settings_screen.dart';
-import 'package:flex_drive/services/car_repository.dart';
 import 'package:flex_drive/services/settings_repository.dart';
 import 'package:flex_drive/theme/app_theme.dart';
 import 'package:flex_drive/utils/app_routes.dart';
@@ -12,13 +11,10 @@ import 'package:flutter/material.dart';
 class FlexDriveApp extends StatefulWidget {
   const FlexDriveApp({
     super.key,
-    CarRepository? carRepository,
     this.settingsRepository,
     ThemeMode? initialThemeMode,
-  })  : carRepository = carRepository ?? const CarRepository(),
-        initialThemeMode = initialThemeMode ?? ThemeMode.light;
+  }) : initialThemeMode = initialThemeMode ?? ThemeMode.light;
 
-  final CarRepository carRepository;
   final SettingsRepository? settingsRepository;
   final ThemeMode initialThemeMode;
 
@@ -79,15 +75,14 @@ class _FlexDriveAppState extends State<FlexDriveApp> {
         switch (settings.name) {
           case AppRoutes.home:
             return MaterialPageRoute<void>(
-              builder: (_) => HomeScreen(carRepository: widget.carRepository),
+              builder: (_) => const HomeScreen(),
               settings: settings,
             );
           case AppRoutes.details:
             final car = settings.arguments;
             if (car is! Car) {
               return MaterialPageRoute<void>(
-                builder: (_) =>
-                    HomeScreen(carRepository: widget.carRepository),
+                builder: (_) => const HomeScreen(),
                 settings: settings,
               );
             }
@@ -112,7 +107,7 @@ class _FlexDriveAppState extends State<FlexDriveApp> {
             );
           default:
             return MaterialPageRoute<void>(
-              builder: (_) => HomeScreen(carRepository: widget.carRepository),
+              builder: (_) => const HomeScreen(),
               settings: settings,
             );
         }
