@@ -51,4 +51,23 @@ class Car {
       description: json['description'] as String,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'brand': brand,
+      'model': model,
+      'category': category,
+      'location': location,
+      'pricePerMinute': pricePerMinute,
+      'distanceKm': distanceKm,
+      'batteryPercent': batteryPercent,
+      'rangeKm': rangeKm,
+      'seats': seats,
+      'transmission': transmission,
+      'isAvailable': isAvailable,
+      'imageUrl': imageUrl,
+      'description': description,
+    };
+  }
 }
