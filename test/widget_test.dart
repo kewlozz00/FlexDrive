@@ -23,21 +23,35 @@ const testCar = Car(
 void main() {
   testWidgets('car details screen renders car information', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: CarDetailsScreen(car: testCar),
-      ),
+      const MaterialApp(home: CarDetailsScreen(car: testCar)),
     );
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.text('About this car'),
-      300,
-    );
+    await tester.scrollUntilVisible(find.text('About this car'), 300);
     await tester.pumpAndSettle();
 
     expect(find.text('Tesla Model 3'), findsOneWidget);
     expect(find.text('About this car'), findsOneWidget);
     expect(find.text('84%'), findsOneWidget);
     expect(find.text('Reserve this car'), findsOneWidget);
+  });
+
+  testWidgets('car details screen confirms reservation', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: CarDetailsScreen(car: testCar)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('Reserve this car'), 300);
+    await tester.tap(find.text('Reserve this car'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Confirm reservation'), findsOneWidget);
+    expect(find.text('Confirm'), findsOneWidget);
+
+    await tester.tap(find.text('Confirm'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tesla Model 3 reserved successfully.'), findsOneWidget);
   });
 }
