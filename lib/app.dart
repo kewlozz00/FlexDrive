@@ -1,5 +1,6 @@
 import 'package:flex_drive/models/car.dart';
 import 'package:flex_drive/screens/about_screen.dart';
+import 'package:flex_drive/screens/bookings_screen.dart';
 import 'package:flex_drive/screens/car_details_screen.dart';
 import 'package:flex_drive/screens/home_screen.dart';
 import 'package:flex_drive/screens/settings_screen.dart';
@@ -70,8 +71,9 @@ class _FlexDriveAppState extends State<FlexDriveApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _themeMode,
-      scrollBehavior:
-          const MaterialScrollBehavior().copyWith(overscroll: false),
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        overscroll: false,
+      ),
       initialRoute: AppRoutes.home,
       onGenerateRoute: (settings) {
         switch (settings.name) {
@@ -90,6 +92,11 @@ class _FlexDriveAppState extends State<FlexDriveApp> {
             }
             return MaterialPageRoute<void>(
               builder: (_) => CarDetailsScreen(car: car),
+              settings: settings,
+            );
+          case AppRoutes.bookings:
+            return MaterialPageRoute<void>(
+              builder: (_) => const BookingsScreen(),
               settings: settings,
             );
           case AppRoutes.settings:

@@ -1,6 +1,7 @@
 import 'package:flex_drive/models/car.dart';
 import 'package:flex_drive/screens/car_details_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const testCar = Car(
@@ -23,7 +24,9 @@ const testCar = Car(
 void main() {
   testWidgets('car details screen renders car information', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: CarDetailsScreen(car: testCar)),
+      const ProviderScope(
+        child: MaterialApp(home: CarDetailsScreen(car: testCar)),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -38,7 +41,9 @@ void main() {
 
   testWidgets('car details screen confirms reservation', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: CarDetailsScreen(car: testCar)),
+      const ProviderScope(
+        child: MaterialApp(home: CarDetailsScreen(car: testCar)),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -53,5 +58,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Tesla Model 3 reserved successfully.'), findsOneWidget);
+    expect(find.text('Already reserved'), findsOneWidget);
   });
 }

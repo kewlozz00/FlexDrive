@@ -1,12 +1,18 @@
 import 'package:flex_drive/models/car.dart';
+import 'package:flex_drive/providers/bookings_notifier.dart';
+import 'package:flex_drive/utils/app_routes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class CarDetailsScreen extends StatelessWidget {
+class CarDetailsScreen extends ConsumerWidget {
   const CarDetailsScreen({super.key, required this.car});
 
   final Car car;
 
-  Future<void> _openReservationSheet(BuildContext context) async {
+  Future<void> _openReservationSheet(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -94,17 +100,37 @@ class CarDetailsScreen extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
+      final wasAdded = ref.read(bookingsProvider.notifier).addBooking(car);
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${car.fullName} reserved successfully.')),
+        SnackBar(
+          content: Text(
+            wasAdded
+                ? '${car.fullName} reserved successfully.'
+                : '${car.fullName} is already in your bookings.',
+          ),
+          action: SnackBarAction(
+            label: 'View',
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.bookings);
+            },
+          ),
+        ),
       );
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final availabilityColor = car.isAvailable
         ? const Color(0xFF1C6B63)
         : const Color(0xFF8A5E2B);
+    final isBooked = ref.watch(
+      bookingsProvider.select(
+        (bookings) => bookings.any((booking) => booking.carId == car.id),
+      ),
+    );
+    final canReserve = car.isAvailable && !isBooked;
 
     return Scaffold(
       appBar: AppBar(title: Text(car.fullName)),
@@ -256,16 +282,20 @@ class CarDetailsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           FilledButton.icon(
-            onPressed: car.isAvailable
+            onPressed: canReserve
                 ? () {
-                    _openReservationSheet(context);
+                    _openReservationSheet(context, ref);
                   }
                 : null,
             icon: const Icon(Icons.lock_open_rounded),
             label: Padding(
-              padding: EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 14),
               child: Text(
-                car.isAvailable ? 'Reserve this car' : 'Currently unavailable',
+                !car.isAvailable
+                    ? 'Currently unavailable'
+                    : isBooked
+                    ? 'Already reserved'
+                    : 'Reserve this car',
               ),
             ),
           ),

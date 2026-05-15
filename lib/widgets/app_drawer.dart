@@ -2,10 +2,7 @@ import 'package:flex_drive/utils/app_routes.dart';
 import 'package:flutter/material.dart';
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({
-    super.key,
-    required this.currentRoute,
-  });
+  const AppDrawer({super.key, required this.currentRoute});
 
   final String currentRoute;
 
@@ -27,6 +24,12 @@ class AppDrawer extends StatelessWidget {
               title: 'Cars',
               icon: Icons.directions_car_rounded,
               routeName: AppRoutes.home,
+              currentRoute: currentRoute,
+            ),
+            _DrawerItem(
+              title: 'My bookings',
+              icon: Icons.bookmark_border_rounded,
+              routeName: AppRoutes.bookings,
               currentRoute: currentRoute,
             ),
             _DrawerItem(
