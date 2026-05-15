@@ -70,6 +70,8 @@ class _FlexDriveAppState extends State<FlexDriveApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _themeMode,
+      scrollBehavior:
+          const MaterialScrollBehavior().copyWith(overscroll: false),
       initialRoute: AppRoutes.home,
       onGenerateRoute: (settings) {
         switch (settings.name) {
